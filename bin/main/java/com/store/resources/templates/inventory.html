@@ -1,0 +1,245 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+	<head>
+		<title>Inventory</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<script type="text/javascript" src="webjars/jquery/2.0.3/jquery.min.js"></script>
+		<script type="text/javascript" src="storeApp.js"></script>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+			//]]>
+		</script>
+		
+		<style type="text/css">
+			body{
+				background-color: #272B2D;
+				font-family: verdana;
+			}
+			
+			.productsGrid {
+				margin: 50px auto;
+				width: 600px;
+				background-color: #C4D6DD;
+				color: #CAD7FD;
+				padding: 5px;
+				box-sizing: border-box;
+				border: 1px solid #84969D;
+				border-top: 1px solid #FFFFFF;
+			}
+			
+			#header {
+				padding-bottom: 10px;
+			}
+			
+			.productViewer {
+				max-height: 400px;
+				overflow-y: scroll;
+				background-color: #646464;
+				min-height: 400px;
+			}
+			
+			.productBox {
+				background: linear-gradient(#BDBDBD, #818181);
+				color: rgb(66, 79, 102);
+				padding: 10px;
+				margin: 10px;
+				box-shadow: 0 0 15px 5px rgb(82, 82, 82);
+				border-top: 1px solid white;
+				text-shadow: 0 1px 0 white;
+				position: relative;
+			}
+			
+			.button {
+				display: inline-block;
+				margin: 2px;
+				min-width: 80px;
+				text-align: center;
+				background-color: lightgrey;
+				color: darkgray;
+				padding: 2px;
+				border-radius: 5px;
+				cursor: pointer;
+				border: 1px solid black;
+				font-weight: bold;
+			}
+			
+			.productFieldContainer {
+				  padding: 5px 30px;
+			}
+			
+			.productFieldLabel {
+				  font-weight: bold;
+				  min-width: 100px;
+				  display: inline-block;
+				  margin-bottom: 5px;
+			}
+			
+			.productField {
+				  width: 100%;
+				  padding: 4px;
+			}
+			
+			.invalidField {
+				  background-color: rgb(207, 176, 161);
+				  border: 1px solid rgb(197, 83, 83);
+				  color: rgb(202, 0, 0);
+			}
+			
+			.productDesc {
+				float: left;
+				font-weight: bold;
+			}
+			
+			.productPrice {
+				float: right;
+				font-weight: bold;
+				font-size: 24px;
+			}
+			
+			.productName {
+				float: left;
+			}
+			
+			.productId {
+				float: right;
+			}
+			
+			.productStock {
+				float: left;
+				  padding-top: 25px;
+				  font-weight: bold;
+				  font-size: 13px;
+				  font-family: Lucida Sans Unicode;
+			}
+			
+			#button_new{
+				background-color: #9CD568;
+			}
+			
+			#button_update{
+				background-color: #FFD466;
+			}
+			
+			#button_delete{
+				background-color: #D35050;
+			}
+			
+			#button_refresh{
+				background-color: #8EB2F4;
+			}
+			
+			.form {
+				  width: 400px;
+				  position: fixed;
+				  background-color: rgb(196, 214, 221);
+				  top: 90px;
+				  border: 1px solid #84969D;
+				  border-top: 1px solid #FFFFFF;
+				  z-index: 10;
+				  background: linear-gradient(rgb(100, 101, 107) 30px, rgb(168, 171, 187) 35px, #C4D6DD 60px);
+				  overflow: hidden;
+			}
+			
+			.form-button-container{
+				white-space: nowrap;
+			}
+			
+			.form .button {
+				  width: 49%;
+				  margin-bottom: 10px;
+				  display: inline-block;
+			}
+			
+			.modal {
+				  position: fixed;
+				  left: 0;
+				  top: 0;
+				  opacity: 0.3;
+				  background-color: black;
+				  width: 100%;
+				  height: 100%;
+				  z-index: 1;
+			}
+			
+			.header {
+				  font-weight: bold;
+				  background-color: rgb(55, 55, 55);
+				  padding: 5px;
+				  color: lightgray;
+				  text-shadow: 0 1px 0 white;
+				  box-sizing: border-box;
+			}
+			
+			.selected {
+				  color: rgb(205, 238, 255);
+			}
+			
+			.disabledButton{
+				cursor: default;
+			}
+			
+			.dialog {
+				  position: fixed;
+				  width: 300px;
+				  left: 0;
+				  top: 90px;
+				  background: #C4D6DD;
+				  z-index: 30;
+				  border: 1px solid white;
+				  box-shadow: 0 0 5px black;
+				  box-sizing: border-box;
+				  text-align: center;
+			}
+			
+			.dheader {
+				  padding: 5px;
+				  background: linear-gradient(rgb(224, 224, 224), rgb(237, 237, 237), lightgrey, rgb(190, 190, 190));
+				  box-shadow: 0 0 5px black;
+				  box-sizing: border-box;
+			}
+			
+			.dheader div{
+				  width: 100%;
+				  background: linear-gradient(rgb(187, 13, 13) 0%, rgb(244, 131, 105) 15%, rgb(145, 0, 0) 70%, rgb(216, 33, 33) 100%);
+				  box-sizing: border-box;
+				  color: rgb(199, 199, 199);
+				  font-weight: bold;
+				  text-shadow: 0 1px 0 white;
+				  padding: 5px;
+				  white-space: nowrap;
+				  overflow: hidden;
+				  border-radius: 5px;
+				  text-align: center;
+				  box-sizing: border-box;
+			}
+			
+			.noselect {
+			    -webkit-touch-callout: none;
+			    -webkit-user-select: none;
+			    -khtml-user-select: none;
+			    -moz-user-select: none;
+			    -ms-user-select: none;
+			    user-select: none;
+			}
+			
+			.dialogMessage {
+				  margin: 10px;
+				  text-align: center;
+				  text-shadow: 0 1px 0 white;
+				  border: 1px dashed rgb(181, 181, 181);
+				  border-radius: 5px;
+				  padding: 20px;
+				  box-sizing: border-box;
+			}
+			
+			.dialog .button {
+				  margin: 5px 10px;
+				  box-sizing: border-box;
+				  width: 90%;
+			}
+			
+		</style>
+	</head>
+	<body></body>
+</html>

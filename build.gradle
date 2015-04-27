@@ -1,0 +1,55 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'spring-boot'
+
+
+
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.3.RELEASE")
+	}
+}
+
+repositories {
+	mavenCentral()
+	jcenter()
+}
+
+dependencies{
+	compile "junit:junit:4.12"
+	compile "joda-time:joda-time:2.2"
+	compile "org.mockito:mockito-core:1.+"
+	compile 'org.springframework:spring-context:4.1.6.RELEASE'
+	compile "org.springframework.boot:spring-boot-starter-thymeleaf"
+	compile "org.mybatis:mybatis:3.2.8"
+	compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.2'
+	compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.2'
+	compile("org.webjars:jquery:2.0.3-1")
+	compile "postgresql:postgresql:9.0-801.jdbc4" 
+}
+
+sourceSets{
+	main{
+		java{
+			srcDir "src/main/java/com/store"
+		}
+		resources{
+			srcDir "src/main/java/com/store/resources"
+		}
+	}
+}
+
+jar {
+	baseName = "storeApp"
+	version = "0.1.0"
+}
+
+task copyToLib(type: Copy){
+	into "$projectDir/lib"
+	from configurations.runtime
+}
+build.dependsOn copyToLib

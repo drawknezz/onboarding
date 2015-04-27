@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+	PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+	"http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+	
+<generatorConfiguration>
+	<classPathEntry location="C:\Users\fordonez\workspace\storeApp\lib\postgresql-9.4-1201.jdbc4.jar"/>
+	
+	<context id="storeApp" targetRuntime="Mybatis3">
+	
+		<jdbcConnection driverClass="org.postgresql.Driver" 
+			connectionURL="jdbc:postgresql://localhost:5432/storedb"
+			userId="postgres"
+			password="root"
+		/>
+		
+		<javaModelGenerator targetPackage="main.java.com.store.resources.mappers" targetProject="storeApp/src/" />
+
+		<sqlMapGenerator targetPackage="main.java.com.store.resources.dao" targetProject="storeApp/src/" />
+
+		<javaClientGenerator targetPackage="main.java.com.store.resources.dao" type="XMLMAPPER" targetProject="storeApp/src/"/>
+		
+		<table tableName="products" domainObjectName="Product">
+			<generatedKey column="id" sqlStatement="JDBC" identity="true" type="post"/>
+			<columnOverride column="id" property="id" javaType="Long" />
+			<columnOverride column="name" property="name" javaType="String" />
+			<columnOverride column="price" property="price" javaType="BigDecimal" />
+			<columnOverride column="description" property="description" javaType="String" />
+			<columnOverride column="stock" property="stock" javaType="Integer" />
+		</table>
+	</context>
+</generatorConfiguration>
