@@ -1,6 +1,6 @@
-this.storeApp = {};
+storeApp = {};
 			
-this.storeApp.productsGrid = function(){
+storeApp.productsGrid = function(){
 	var that = {};
 	
 	var dom = null;
@@ -28,7 +28,7 @@ this.storeApp.productsGrid = function(){
 		footer = f;
 	};
 	
-	that.getFooter = function(f){
+	that.getFooter = function(){
 		return footer;
 	};
 	
@@ -48,7 +48,7 @@ this.storeApp.productsGrid = function(){
 	return that;
 };
 
-this.storeApp.productsHeader = function(params){
+storeApp.productsHeader = function(params){
 	var that = {};
 	params = params || {};
 	
@@ -121,7 +121,7 @@ this.storeApp.productsHeader = function(params){
 	return that;
 };
 			
-this.storeApp.productsViewer = function(params){
+storeApp.productsViewer = function(params){
 	var that = {};
 	params = params || {};
 	
@@ -150,7 +150,6 @@ this.storeApp.productsViewer = function(params){
 		
 		products.sort(sorter);
 		
-		console.time('repainting fadeins');
 		for(var i = 0; i < products.length; i++){
 			products[i].setBaseColor(cols[col]);
 			
@@ -160,7 +159,6 @@ this.storeApp.productsViewer = function(params){
 			dom.appendChild(proddom);
 			$(proddom).fadeIn();
 		}
-		console.timeEnd('repainting fadeins');
 	};
 	
 	//add products to the view
@@ -206,20 +204,12 @@ this.storeApp.productsViewer = function(params){
 	that.removeProductById = function(id){
 		for(var i = 0; i < products.length; i++){
 			if(products[i].getId() == id){
-				products.pop(products[i]);
+				products.splice(i, 1);
 				return;
 			}
 		}
 	};
 
-// 				that.setSelected = function(prod){
-// 					onSelect({ selected: prod });
-		
-// 					for(var i = 0; i < products.length; i++){
-// 						if(products[i] !== prod) products[i].unselect();
-// 					}
-// 				};
-	
 	that.render = function(){
 		var div = document.createElement('DIV');
 		div.setAttribute('class', 'productViewer');
@@ -311,7 +301,7 @@ this.storeApp.productsViewer = function(params){
 	return that;
 };
 
-this.storeApp.productsFooter = function(params){
+storeApp.productsFooter = function(params){
 	var that = {};
 	params = params || {};
 	
@@ -368,7 +358,7 @@ this.storeApp.productsFooter = function(params){
 	return that;
 };
 
-this.storeApp.colorDiffs = function(color1, color2){
+storeApp.colorDiffs = function(color1, color2){
 	var reg = /^#*([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/;
 	if(!reg.test(color1)){
 		throw "Invalid color1 parameter passed to colorDiffs: " + color1;
@@ -389,11 +379,11 @@ this.storeApp.colorDiffs = function(color1, color2){
 	return {col1: {r:r, g:g, b:b}, col2: {r:r2, g:g2, b:b2}, r:(r-r2), g:(g-g2), b:(b-b2)};
 };
 
-this.storeApp.formatColor = function(r,g,b){
+storeApp.formatColor = function(r,g,b){
 	return "#" + (1e15+r.toString(16)+'').slice(-2) + (1e15+g.toString(16)+'').slice(-2) + (1e15+b.toString(16)+'').slice(-2);
 };
 
-this.storeApp.addColor = function(color, red, green, blue){
+storeApp.addColor = function(color, red, green, blue){
 	var reg = /^#*([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/;
 	if(!reg.test(color)){
 		throw "Invalid color parameter passed to addColor " + color;
@@ -412,10 +402,10 @@ this.storeApp.addColor = function(color, red, green, blue){
 	return storeApp.formatColor(sum(r,red), sum(g,green), sum(b,blue));
 };
 
-this.storeApp.getColorTransitions = function(colors, steps){
+storeApp.getColorTransitions = function(colors, steps){
 	var transitions = [];
 	var diff = null;
-	var sr, sg, sb, fr, fg, fb;
+	var sr, sg, sb;
 	for(var c = 0; c < colors.length-1; c++){
 		diff = storeApp.colorDiffs(colors[c], colors[c+1]);
 		
@@ -435,7 +425,7 @@ this.storeApp.getColorTransitions = function(colors, steps){
 	return transitions;
 };
 
-this.storeApp.button = function(btn){
+storeApp.button = function(btn){
 	var that = {};
 	btn = btn || {};
 	
@@ -496,7 +486,7 @@ this.storeApp.button = function(btn){
 		var dbutton = document.createElement("DIV");
 		dbutton.setAttribute('id', id);
 		dbutton.setAttribute('class', 'button noselect');
-		dbutton.textContent = btn.text;
+		dbutton.textContent = text;
 		
 		$(dbutton).click(function(e){
 			if(enabled){
@@ -505,11 +495,7 @@ this.storeApp.button = function(btn){
 		});
 		
 		applyColor(enabled?baseColor:disabledColor, dbutton);
-		
-// 					dbutton.style.color = storeApp.addColor(baseColor, -100, -100, -100);
-// 					dbutton.style.textShadow = "0 1px 1px " + storeApp.addColor(baseColor, 86, 131, 110);
-// 					if(back) dbutton.style.background = back;
-		
+
 		for(var i = 0; i < btn.listeners; i++){
 			$(dom).on(listeners[i].eventName, listeners[i].fn);
 		}
@@ -524,7 +510,7 @@ this.storeApp.button = function(btn){
 	return that;
 };
 
-this.storeApp.formatNumber = function(number){
+storeApp.formatNumber = function(number){
 	var reg = /(\d+)(\d{3})/;
 	var n = number+'';
 	
@@ -535,7 +521,7 @@ this.storeApp.formatNumber = function(number){
 	return n;
 };
 
-this.storeApp.product = function(prod){
+storeApp.product = function(prod){
 	var that = {};
 	prod = prod || {};
 	
@@ -596,7 +582,6 @@ this.storeApp.product = function(prod){
 			dataType: 'json',
 			success: function(data){
 				if(data > 0){
-					//TODO: trigger deleted event
 					$(dom).trigger('productDeleted', {id: id});
 					
 					if(callback){
@@ -779,7 +764,6 @@ this.storeApp.product = function(prod){
 	var animColor = function(col1, col2, steps, mills){
 		if(dom && col1 && col2){
 			var cols = storeApp.getColorTransitions([col1, col2], steps);
-			var calls = 0;
 			steps = steps || 10;
 			mills = mills || 10;
 			if(currentAnim && currentAnim.timeout) window.clearTimeout(currentAnim.timeout);
@@ -864,7 +848,7 @@ this.storeApp.product = function(prod){
 	return that;
 };
 
-this.storeApp.dialog = function(dialog){
+storeApp.dialog = function(dialog){
 	var that = {};
 	dialog = dialog || {};
 	
@@ -906,7 +890,7 @@ this.storeApp.dialog = function(dialog){
 		dheader.setAttribute('class', 'dheader');
 		
 		var dhcont = document.createElement('DIV');
-		dhcont.textContent = 'error (ex)';
+		dhcont.textContent = title;
 		dhcont.setAttribute('class', 'noselect');
 		dhcont.style.background = applyColor(basecolor);
 		
@@ -934,12 +918,12 @@ this.storeApp.dialog = function(dialog){
 	return that;
 };
 
-this.storeApp.showDialog = function(ops){
+storeApp.showDialog = function(ops){
 	var d = this.dialog(ops);
 	document.body.appendChild(d.render());
 };
 
-this.storeApp.form = function(form){
+storeApp.form = function(form){
 	var that = {};
 	
 	form = form || {};
@@ -1003,7 +987,7 @@ this.storeApp.form = function(form){
 				if(fields[i].isValid()){
 					params.push((fields[i].submitParam || fields[i].id) + '=' + fields[i].value);
 				}else{
-					storeApp.showDialog({id: 'dialogError', message: 'field ' + fields[i].label + ' has an invalid value.', basecolor: '#990000'});
+					storeApp.showDialog({id: 'dialogError', title: 'Error', message: 'field ' + fields[i].label + ' has an invalid value.', basecolor: '#990000'});
 					return;
 				}
 			}
@@ -1020,7 +1004,7 @@ this.storeApp.form = function(form){
 				}
 			},
 			error: function(ex, text, error){
-				storeApp.showDialog({id: 'dialogError', message: ex.responseJSON.message, basecolor: '#990000'});
+				storeApp.showDialog({id: 'dialogError', title: 'Error', message: ex.responseJSON.message, basecolor: '#990000'});
 			}
 		});
 	};
@@ -1068,7 +1052,7 @@ this.storeApp.form = function(form){
 			dfield.setAttribute('type', 'text');
 			dfield.setAttribute('class', 'productField');
 			dfield.setAttribute('maxLength', f.maxLength);
-			dfield.onchange = function(e){
+			dfield.onchange = function(){
 				f.value = dfield.value;
 				
 				if(!f.validator.test(dfield.value)){
