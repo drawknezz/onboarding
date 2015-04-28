@@ -167,7 +167,13 @@ storeApp.productsViewer = function(params){
 			var proddom = products[i].getDom();
 //			products[i].setBaseColor(cols[col]);
 			
-			products[i].animToColor(cols[col], 20, 10, setBase(cols[col]));
+			if(selected && selected == products[i]){
+				products[i].paintSelected();
+				products[i].getDom().setAttribute('class', 'productBox selected');
+			}else{
+				products[i].animToColor(cols[col], 20, 10, setBase(cols[col]));
+			}
+			
 			col = +!col;
 		}
 	};
