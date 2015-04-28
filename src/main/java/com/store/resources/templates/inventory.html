@@ -8,6 +8,147 @@
 		
 		<script type="text/javascript">
 		//<![CDATA[
+			$(document).ready(function(){
+				storeApp.grid = storeApp.productsGrid();
+				
+				var header = storeApp.productsHeader({id:'header', buttons: [
+					{
+						text: 'new',
+						id: 'btnNew',
+						handler: function(){
+							var form = storeApp.form({
+								id: 'formNew',
+								title: 'new product',
+								url: 'product',
+								method: 'POST',
+								basecolor: '#114298',
+								fields: [
+									{
+										id: 'txtName',
+										label: 'name',
+										submitParam: 'name',
+										validator: /^[a-zA-Z_0-9]{1,50}$/,
+										maxLength: 50
+									},
+									{
+										id: 'txtPrice',
+										label: 'price',
+										submitParam: 'price',
+										validator: /^[0-9]{1,7}$/,
+										maxLength: 7
+									},
+									{
+										id: 'txtDescription',
+										label: 'description',
+										submitParam: 'description',
+										validator: /^[a-zA-Z_0-9 ]{1,50}$/,
+										maxLength: 50
+									},
+									{
+										id: 'txtStock',
+										label: 'stock',
+										submitParam: 'stock',
+										validator: /^[0-9]{1,5}$/,
+										maxLength: 5
+									}
+								],
+								button: storeApp.button({text:'create', id:'btnCreateProduct', baseColor: '#5D88CF'}),
+								afterSubmit: function(data, form){
+									console.log('product created correctly with id: ' + data);
+									
+									if(form){
+										var dom = form.getDom();
+										
+										if(dom){
+											dom.parentElement.removeChild(dom);
+										}
+									}
+									
+									var view = storeApp.grid.getViewer();
+									view.loadProducts(null, function(){
+										view.scrollToProductById(data, function(){
+											view.getProductById(data).highlightNew();
+										});
+									});
+								}
+							});
+							document.body.appendChild(form.render());
+						},
+						baseColor: "#8EDF60"
+						
+					},
+					{
+						text: 'edit',
+						id: 'btnEdit',
+						handler: function(){
+							var selProd = storeApp.grid.getViewer().getSelected();
+							
+							if(selProd){
+								selProd.edit();
+							}
+						},
+						enabled: false,
+						baseColor: "#5D88CF"
+						
+					},
+					{
+						text: 'delete',
+						id: 'btnDelete',
+						handler: function(){
+							var selProd = storeApp.grid.getViewer().getSelected();
+							
+							if(selProd){
+								selProd.del();
+							}
+						},
+						enabled: false,
+						baseColor: "#D5361A"
+						
+					},
+					{
+						text: 'refreh',
+						id: 'btnRefresh',
+						handler: function(){
+							var view = storeApp.grid.getViewer();
+							
+							view.loadProducts();
+						},
+						baseColor: "#A8C3E8"
+						
+					}
+				]});
+				
+				var viewer = storeApp.productsViewer({
+					id:'viewer',
+					listeners: {
+						onSelect: function(ops){
+							var btnEdit = storeApp.grid.getHeader().getButtonById('btnEdit');
+							var btnDelete = storeApp.grid.getHeader().getButtonById('btnDelete');
+							
+							if(ops && ops.selected){
+								console.log('selected product: ' + ops.selected);
+			
+								btnEdit.enable();
+								btnDelete.enable();
+								
+							}else{
+								console.log('nothing selected');
+								
+								btnEdit.disable();
+								btnDelete.disable();
+							}
+						}
+					}
+				});
+				
+				storeApp.grid.setHeader(header);
+				storeApp.grid.setViewer(viewer);
+				storeApp.grid.setFooter(storeApp.productsFooter({id:'footer', viewer: viewer}));
+				
+				document.body.appendChild(storeApp.grid.render());
+				
+				storeApp.grid.getViewer().loadProducts();
+			});
 			//]]>
 		</script>
 		
@@ -237,6 +378,35 @@
 				  margin: 5px 10px;
 				  box-sizing: border-box;
 				  width: 90%;
+			}
+			
+			.sorter {
+				  color: black;
+				  font-weight: bold;
+				  font-size: 13px;
+				  text-shadow: 0 1px 0 white;
+				  text-align: right;
+			}
+			
+			.sorter div {
+				  display: inline-block;
+				  margin: 5px 15px;
+			}
+			
+			.sorter select {
+				  border: 1px solid rgb(103, 148, 166);
+			}
+			
+			.sortbutton {
+				  cursor: pointer;
+			}
+			
+			.sortbutton:hover {
+				  color: #007CD3;
+			}
+
+			.prodcant {
+				  float: left;
 			}
 			
 		</style>

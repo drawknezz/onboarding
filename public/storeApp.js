@@ -131,13 +131,46 @@ storeApp.productsViewer = function(params){
 		throw "An id must be specified for the header element";
 	}
 	var id = params.id;
-	var sortingField = "name";
+	var subscribers = [];
+	var sortingField = 'name';
+	var sortingFieldGetter = "getName";
+	var sortingAsc = true;
 	var sorter = function(a, b){
-		return a[sortingField] > b[sortingField]? 1 : a[sortingField] == b[sortingField]? 0: -1;
+		if(!sortingAsc){
+			var t = b;
+			b = a;
+			a = t;
+		}
+		return a[sortingFieldGetter]() > b[sortingFieldGetter]()? 1 : a[sortingFieldGetter]() == b[sortingFieldGetter]()? 0: -1;
 	};
 	
 	var selected = null;
 	var onSelect = params.listeners && params.listeners.onSelect;
+	
+	var notify = function(msg, data){
+		for(var i = 0; i < subscribers.length; i++){
+			if(typeof subscribers[i].notify === 'function'){
+				subscribers[i].notify(msg, data);
+			}
+		}
+	};
+	
+	var applyZebra = function(){
+		var cols = ["#7B9EDA", "#BBBEDD"];
+		var col = 0;
+		
+		var setBase = function(col){
+			products[i].setBaseColor(col);
+		};
+		
+		for(var i = 0; i < products.length; i++){
+			var proddom = products[i].getDom();
+//			products[i].setBaseColor(cols[col]);
+			
+			products[i].animToColor(cols[col], 20, 10, setBase(cols[col]));
+			col = +!col;
+		}
+	};
 	
 	var repaint = function(){
 		console.log('repainting view');
@@ -145,25 +178,20 @@ storeApp.productsViewer = function(params){
 			throw "there's no dom element to paint on.";
 		}
 		dom.innerHTML = '';
-		var cols = ["#7B9EDA", "#BBBEDD"];
-		var col = 0;
-		
 		products.sort(sorter);
 		
 		for(var i = 0; i < products.length; i++){
-			products[i].setBaseColor(cols[col]);
-			
-			col = +!col;
 			var proddom = products[i].render();
 			proddom.style.display = 'none';
 			dom.appendChild(proddom);
 			$(proddom).fadeIn();
 		}
+		
+		applyZebra();
 	};
 	
 	//add products to the view
 	var addProducts= function(prods){
-		prods.sort(sorter);
 		for(var i = 0; i < prods.length; i++){
 			var prod = storeApp.product(prods[i]);
 			prod.setViewer(that);
@@ -186,6 +214,8 @@ storeApp.productsViewer = function(params){
 			data: params,
 			dataType: 'json',
 			success: function(data){
+				notify('productsLoaded', data);
+				
 				addProducts(data);
 				
 				repaint();
@@ -205,6 +235,8 @@ storeApp.productsViewer = function(params){
 		for(var i = 0; i < products.length; i++){
 			if(products[i].getId() == id){
 				products.splice(i, 1);
+				notify('productsLoaded', products);
+				applyZebra();
 				return;
 			}
 		}
@@ -220,8 +252,9 @@ storeApp.productsViewer = function(params){
 		
 		$(div).on('productDeleted', function(e, ops){
 			console.log('[viewer.evt] productDeleted');
-			if(selected.getId() === ops.id){
+			if(selected && selected.getId() === ops.id){
 				console.log('selected product was just deleted.');
+				onSelect({ selected: null });
 				selected = null;
 			}
 		}).on('productSelected', function(e, ops){
@@ -270,6 +303,10 @@ storeApp.productsViewer = function(params){
 		return products;
 	};
 	
+	that.getProductCount = function(){
+		return products.length;
+	};
+	
 	that.repaint = function(){
 		return repaint();
 	};
@@ -298,6 +335,29 @@ storeApp.productsViewer = function(params){
 		return selected;
 	};
 	
+	that.getSortingField = function(){
+		return sortingField;
+	};
+	
+	that.isSortingAsc = function(){
+		return sortingAsc;
+	};
+	
+	that.getSortingGetter = function(){
+		return sortingFieldGetter;
+	};
+	
+	that.sortBy = function(f, asc){
+		sortingField = f.name;
+		sortingFieldGetter = f.getter;
+		sortingAsc = asc;
+		repaint();
+	};
+	
+	that.addSubscriber = function(obj){
+		subscribers.push(obj);
+	};
+	
 	return that;
 };
 
@@ -306,15 +366,20 @@ storeApp.productsFooter = function(params){
 	params = params || {};
 	
 	var dom = null;
-	var buttons = [];
 	if(!params || !params.id){
 		throw "An id must be specified for the footer element";
 	}
 	var id = params.id;
+	var viewer = params.viewer;
+	var domCant = null;
 	
 	var clearButtons = function(){
 		buttons = [];
 	};
+
+	if(viewer){
+		viewer.addSubscriber(that);
+	}
 	
 	var repaint = function(){
 		if(!dom){
@@ -330,13 +395,79 @@ storeApp.productsFooter = function(params){
 		buttons.push(button);
 	};
 	
+	var updateCantProds = function(data){
+		if(domCant){
+			domCant.textContent = data.length + ' products listed.';
+		}
+	};
+	
 	that.render = function(){
 		var div = document.createElement('DIV');
 		div.setAttribute('id', id);
+		div.setAttribute('class', 'noselect');
 		
-		for(var i = 0; i < buttons.length; i++){
-			div.appendChild(buttons[i].render());
+		var dcant = document.createElement('DIV');
+		dcant.setAttribute('class', 'prodcant');
+		
+		domCant = dcant;
+		
+		var dsort = document.createElement('DIV');
+		dsort.setAttribute('class', 'sorter');
+		
+		var dstext = document.createElement('DIV');
+		dstext.textContent = 'sorting by';
+		
+		var select = document.createElement('SELECT');
+		var fields = storeApp.product({id:'sorterP'}).getSortableFields();
+		
+		var addOption = function(f){
+			var option = document.createElement('OPTION');
+			option.textContent = f.name;
+			
+			option.setAttribute('getter', f.getter);
+			
+			select.appendChild(option);
+		};
+		
+		for(var i = 0; i < fields.length; i++){
+			addOption(fields[i]);
 		}
+
+		if(viewer){
+			select.value = viewer.getSortingField();
+		}
+		
+		select.onchange = function(e, t){
+			console.log('select changed');
+			if(viewer){
+				var sortingField = {name: select.value, getter: select.selectedOptions[0].getAttribute('getter')};
+				viewer.sortBy(sortingField, dsasc.textContent !== 'desc');
+			}
+		};
+		
+		var dsasc = document.createElement('DIV');
+		dsasc.setAttribute('class', 'sortbutton');
+		dsasc.textContent = 'asc';
+		
+		dsasc.onclick = function(){
+			if(dsasc.textContent === 'asc'){
+				dsasc.textContent = 'desc';
+			}else{
+				dsasc.textContent = 'asc';
+			}
+			
+			if(viewer){
+				var sortingField = {name: select.value, getter: select.selectedOptions[0].getAttribute('getter')};
+				viewer.sortBy(sortingField, dsasc.textContent !== 'desc');
+			}
+		};
+		
+		dsort.appendChild(dcant);
+		dsort.appendChild(dstext);
+		dsort.appendChild(select);
+		dsort.appendChild(dsasc);
+		
+		div.appendChild(dsort);
 		
 		dom = div;
 		
@@ -353,6 +484,14 @@ storeApp.productsFooter = function(params){
 	
 	that.addButton = function(button){
 		return addButton(button);
+	};
+	
+	that.notify = function(msg, data){
+		switch (msg){
+		case 'productsLoaded':
+			updateCantProds(data);
+			break;
+		}
 	};
 	
 	return that;
@@ -380,14 +519,24 @@ storeApp.colorDiffs = function(color1, color2){
 };
 
 storeApp.formatColor = function(r,g,b){
+	var t = /^[0-9]{1,3}$/;
+	if(!t.test(r) || !t.test(g) || !t.test(b)){
+		throw new Error('formatColor expects numbers of no more than 3 digits');
+	}
+
 	return "#" + (1e15+r.toString(16)+'').slice(-2) + (1e15+g.toString(16)+'').slice(-2) + (1e15+b.toString(16)+'').slice(-2);
 };
 
 storeApp.addColor = function(color, red, green, blue){
 	var reg = /^#*([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/;
+	var t = /^-*[0-9]{1,3}$/;
 	if(!reg.test(color)){
-		throw "Invalid color parameter passed to addColor " + color;
+		throw new Error("Invalid color parameter passed to addColor " + color);
 	}
+	if(!t.test(red) || !t.test(green) || !t.test(blue)){
+		throw new Error('addColor expects numbers of no more than 3 digits for color components');
+	}
+
 	var cols = color.match(reg);
 	var r = parseInt(cols[1], 16);
 	var g = parseInt(cols[2], 16);
@@ -398,7 +547,6 @@ storeApp.addColor = function(color, red, green, blue){
 		return c > 255? 255: c < 0? 0: c;
 	};
 	
-	//return "#" + (1e15+sum(r,red).toString(16)+'').slice(-2) + (1e15+sum(g,green).toString(16)+'').slice(-2) + (1e15+sum(b,blue).toString(16)+'').slice(-2);
 	return storeApp.formatColor(sum(r,red), sum(g,green), sum(b,blue));
 };
 
@@ -512,8 +660,14 @@ storeApp.button = function(btn){
 
 storeApp.formatNumber = function(number){
 	var reg = /(\d+)(\d{3})/;
-	var n = number+'';
-	
+	var n = +number;
+
+	if(n!==n){
+		throw new Error('formatNumber expects a numeric value');
+	}
+
+	n = n+'';
+
 	while(reg.test(n)){
 		n = n.replace(reg, '$1' + '.' + '$2');
 	}
@@ -557,8 +711,12 @@ storeApp.product = function(prod){
 	
 	var afterDelete = function(){
 		if(dom){
-			$(dom).fadeOut({
+			$(dom).animate({
+				opacity: 0,
+				height: 0
+			},{
 				complete: function(){
+					dom.style.display = 'none';
 					if(viewer){
 						viewer.removeProductById(id);
 					}
@@ -571,7 +729,6 @@ storeApp.product = function(prod){
 		console.log('product ID ' + id + ' was succesfully edited.');
 	};
 	
-	//evt first because this gets called as a click handler
 	var del = function(evt, callback){
 		if(evt) evt.stopPropagation();
 		$.ajax({
@@ -761,7 +918,7 @@ storeApp.product = function(prod){
 		return applyColor(color);
 	};
 	
-	var animColor = function(col1, col2, steps, mills){
+	var animColor = function(col1, col2, steps, mills, callback){
 		if(dom && col1 && col2){
 			var cols = storeApp.getColorTransitions([col1, col2], steps);
 			steps = steps || 10;
@@ -776,6 +933,10 @@ storeApp.product = function(prod){
 					currentAnim.calls += 1;
 				}else{
 					currentAnim.timeout = null;
+					
+					if(typeof callback === 'function'){
+						callback();
+					}
 				}
 			};
 			
@@ -828,6 +989,10 @@ storeApp.product = function(prod){
 		return paintUnselected();
 	};
 	
+	that.animToColor = function(col2, steps, mills, callback){
+		animColor(currentColor, col2, steps, mills, callback);
+	};
+	
 	that.setViewer = function(v){
 		viewer = v;
 	};
@@ -844,6 +1009,14 @@ storeApp.product = function(prod){
 	that.getDescription = function(){return description;};
 	that.getStock = function(){return stock;};
 	that.getDom = function(){return dom;};
+	
+	that.getSortableFields = function(){
+		return [{name: 'id', getter: 'getId'}, {name: 'name', getter: 'getName'}, {name: 'price', getter: 'getPrice'}, {name: 'description', getter: 'getDescription'}, {name: 'stock', getter: 'getStock'}];
+	};
+	
+	that.compareTo = function(b, sortingField){
+		return this[sortingField] > b[sortingField]? 1 : this[sortingField] == b[sortingField]? 0: -1;
+	};
 	
 	return that;
 };
@@ -1095,145 +1268,3 @@ storeApp.form = function(form){
 	
 	return that;
 };
-
-$(document).ready(function(){
-	storeApp.grid = storeApp.productsGrid();
-	
-	var header = storeApp.productsHeader({id:'header', buttons: [
-		{
-			text: 'new',
-			id: 'btnNew',
-			handler: function(){
-				var form = storeApp.form({
-					id: 'formNew',
-					title: 'new product',
-					url: 'product',
-					method: 'POST',
-					basecolor: '#114298',
-					fields: [
-						{
-							id: 'txtName',
-							label: 'name',
-							submitParam: 'name',
-							validator: /^[a-zA-Z_0-9]{1,50}$/,
-							maxLength: 50
-						},
-						{
-							id: 'txtPrice',
-							label: 'price',
-							submitParam: 'price',
-							validator: /^[0-9]{1,7}$/,
-							maxLength: 7
-						},
-						{
-							id: 'txtDescription',
-							label: 'description',
-							submitParam: 'description',
-							validator: /^[a-zA-Z_0-9 ]{1,50}$/,
-							maxLength: 50
-						},
-						{
-							id: 'txtStock',
-							label: 'stock',
-							submitParam: 'stock',
-							validator: /^[0-9]{1,5}$/,
-							maxLength: 5
-						}
-					],
-					button: storeApp.button({text:'create', id:'btnCreateProduct', baseColor: '#5D88CF'}),
-					afterSubmit: function(data, form){
-						console.log('product created correctly with id: ' + data);
-						
-						if(form){
-							var dom = form.getDom();
-							
-							if(dom){
-								dom.parentElement.removeChild(dom);
-							}
-						}
-						
-						var view = storeApp.grid.getViewer();
-						view.loadProducts(null, function(){
-							view.scrollToProductById(data, function(){
-								view.getProductById(data).highlightNew();
-							});
-						});
-					}
-				});
-				document.body.appendChild(form.render());
-			},
-			baseColor: "#8EDF60"
-			
-		},
-		{
-			text: 'edit',
-			id: 'btnEdit',
-			handler: function(){
-				var selProd = storeApp.grid.getViewer().getSelected();
-				
-				if(selProd){
-					selProd.edit();
-				}
-			},
-			enabled: false,
-			baseColor: "#5D88CF"
-			
-		},
-		{
-			text: 'delete',
-			id: 'btnDelete',
-			handler: function(){
-				var selProd = storeApp.grid.getViewer().getSelected();
-				
-				if(selProd){
-					selProd.del();
-				}
-			},
-			enabled: false,
-			baseColor: "#D5361A"
-			
-		},
-		{
-			text: 'refreh',
-			id: 'btnRefresh',
-			handler: function(){
-				var view = storeApp.grid.getViewer();
-				
-				view.loadProducts();
-			},
-			baseColor: "#A8C3E8"
-			
-		}
-	]});
-	
-	
-	
-	storeApp.grid.setHeader(header);
-	storeApp.grid.setViewer(storeApp.productsViewer({
-		id:'viewer',
-		listeners: {
-			onSelect: function(ops){
-				var btnEdit = storeApp.grid.getHeader().getButtonById('btnEdit');
-				var btnDelete = storeApp.grid.getHeader().getButtonById('btnDelete');
-				
-				if(ops && ops.selected){
-					console.log('selected product: ' + ops.selected);
-
-					btnEdit.enable();
-					btnDelete.enable();
-					
-				}else{
-					console.log('nothing selected');
-					
-					btnEdit.disable();
-					btnDelete.disable();
-				}
-			}
-		}
-	}));
-	storeApp.grid.setFooter(storeApp.productsFooter({id:'footer'}));
-	
-	document.body.appendChild(storeApp.grid.render());
-	
-	storeApp.grid.getViewer().loadProducts();
-});
