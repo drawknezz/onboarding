@@ -59,4 +59,8 @@ public class ProductDTO {
 	public String getShortDescription(){
 		return "{" + this.description + ", " + this.price + "}";
 	}
+	
+	public String[] getValuesArray(){
+		return new String[] {id.toString(), name, price.toString(), description, stock.toString()};
+	}
 }

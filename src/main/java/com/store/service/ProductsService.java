@@ -1,9 +1,11 @@
 package main.java.com.store.service;
 
 import java.security.InvalidParameterException;
+import java.util.ArrayList;
 import java.util.List;
 
 import main.java.com.store.dto.ProductDTO;
+import main.java.com.store.manager.CsvFile;
 import main.java.com.store.manager.ProductsMgr;
 import main.java.com.store.resources.mappers.ProductExample;
 
@@ -38,5 +40,22 @@ public class ProductsService {
 	
 	public Integer deleteProduct(ProductExample example){
 		return manager.deleteProduct(example);
+	}
+	
+	public void getProductsCsv(Appendable writer){
+		if(writer == null){
+			throw new InvalidParameterException("A writer must be specified to write the csv records.");
+		}
+		
+		CsvFile csv = new CsvFile();
+		List<String[]> prodList = new ArrayList<String[]>();
+		
+		List<ProductDTO> products = getProducts(new ProductExample());
+		for(ProductDTO p : products){
+			prodList.add(p.getValuesArray());
+		}
+		
+		logger.debug("writing " + prodList.size() + " records to csv file.");
+		csv.writeRecords(prodList, writer);
 	}
 }

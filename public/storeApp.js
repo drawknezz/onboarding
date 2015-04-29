@@ -251,6 +251,7 @@ storeApp.productsViewer = function(params){
 	that.render = function(){
 		var div = document.createElement('DIV');
 		div.setAttribute('class', 'productViewer');
+		div.oncontextmenu = function(){return false;};
 		
 		for(var i = 0; i < products.length; i++){
 			div.appendChild(products[i].render());
@@ -362,6 +363,34 @@ storeApp.productsViewer = function(params){
 	
 	that.addSubscriber = function(obj){
 		subscribers.push(obj);
+	};
+	
+	that.getProductByCoordinates = function(x, y){
+		if(!dom) {
+			console.log('the viewer isn\'t rendered yet');
+			return;
+		}
+		
+		var current = 0;
+		var height = dom.clientHeight;
+		
+		if(y > height){
+			console.log('passed y coordinate outside of the viewer.');
+		}else{
+			for(var i = 0; i < products.length; i++){
+				var top = Math.abs(dom.getBoundingClientRect().top - products[i].getDom().getBoundingClientRect().top);
+				var ph = products[i].getDom().clientHeight;
+				
+				if(y > top && y < (top + ph)){
+					return products[i];
+				}
+				
+				if(top > height){
+					console.log('product not visible');
+					return null;
+				}
+			}
+		}
 	};
 	
 	return that;
@@ -771,25 +800,29 @@ storeApp.product = function(prod){
 					id: 'txtName',
 					label: 'name',
 					submitParam: 'nname',
-					validator: /^[a-zA-Z_0-9]{0,50}$/
+					validator: /^[a-zA-Z_0-9]{0,50}$/,
+					maxLength: 50
 				},
 				{
 					id: 'txtPrice',
 					label: 'price',
 					submitParam: 'nprice',
-					validator: /^[0-9]{0,7}$/
+					validator: /^[0-9]{0,7}$/,
+					maxLength: 7
 				},
 				{
 					id: 'txtDescription',
 					label: 'description',
 					submitParam: 'ndescription',
-					validator: /^[a-zA-Z_0-9 ]{0,50}$/
+					validator: /^[a-zA-Z_0-9 ]{0,50}$/,
+					maxLength: 50
 				},
 				{
 					id: 'txtStock',
 					label: 'stock',
 					submitParam: 'nstock',
-					validator: /^[0-9]{0,5}$/
+					validator: /^[0-9]{0,5}$/,
+					maxLength: 5
 				}
 			],
 			button: storeApp.button({text:'confirm', id:'btnConfirmEdit', baseColor: '#5D88CF'}),
@@ -850,10 +883,82 @@ storeApp.product = function(prod){
 	that.render = function(){
 		var dprod = document.createElement("DIV");
 		dprod.setAttribute('id', 'prod' + id);
-		dprod.setAttribute('class', 'productBox');
+		dprod.setAttribute('class', 'productBox noselect');
 		dprod.style.backgroundColor = backcolor;
 		
 		if(back) dprod.style.background = back;
+		
+		//context menu
+		dprod.oncontextmenu = function(e){
+			if(e.button == 2){
+				//select product
+				var vdom = viewer.getDom();
+				if(!vdom){
+					console.log('viewer is not rendered.');
+					return;
+				}
+				var prod = viewer.getProductByCoordinates(e.offsetX, Math.abs(vdom.getBoundingClientRect().top - e.y));
+				if(!prod){
+					console.log('no products under the mouse cursor.');
+					return;
+				}
+				prod.select();
+				
+				var m = document.createElement('DIV');
+				m.setAttribute('class', 'contextmenu');
+				m.setAttribute('tabindex', '0');
+				m.oncontextmenu = function(){return false;};
+
+				m.style.left = e.x + 'px';
+				m.style.top = e.y + 'px';
+
+				m.onblur = function(){
+					if(m.parentElement) m.parentElement.removeChild(m);
+				};
+
+				//menu buttons
+				var addButton = function(label, handler){
+					var btn = document.createElement('DIV');
+					btn.setAttribute('class', 'ctxbutton');
+					btn.textContent = label;
+					
+					$(btn).click(function(){
+						if(typeof handler === 'function'){
+							handler();
+						}
+						m.onblur();
+					});
+					
+					m.appendChild(btn);
+				};
+				
+				addButton('edit', function(){
+					if(viewer){
+						var sprod = viewer.getSelected();
+						
+						if(sprod){
+							sprod.edit();
+						}
+					}
+				});
+				
+				addButton('delete', function(){
+					if(viewer){
+						var sprod = viewer.getSelected();
+						
+						if(sprod){
+							sprod.del();
+						}
+					}
+				});
+				
+				document.body.appendChild(m);
+				m.focus();
+			}
+			
+			return false;
+		};
+		
 		
 		var sident = document.createElement("DIV"); //desc - price
 		sident.style.clear = 'both';
@@ -1156,22 +1261,7 @@ storeApp.form = function(form){
 		console.log('form sent correctly, response: ' + data);
 	};
 	
-	var send = function(){
-		var params = extraParams.slice() || [];
-		
-		for(var i = 0; i < fields.length; i++){
-			if(!fields[i].submitParam) console.err('field ' + field[i].id + ' has no submitValue');
-			
-			if(fields[i].value){
-				if(fields[i].isValid()){
-					params.push((fields[i].submitParam || fields[i].id) + '=' + fields[i].value);
-				}else{
-					storeApp.showDialog({id: 'dialogError', title: 'Error', message: 'field ' + fields[i].label + ' has an invalid value.', basecolor: '#990000'});
-					return;
-				}
-			}
-		}
-		
+	var send = function(params){
 		$.ajax({
 			url: url + '?' + params.join('&'),
 			method: method,
@@ -1188,7 +1278,28 @@ storeApp.form = function(form){
 		});
 	};
 	
-	submitButton.setHandler(send);
+	submitButton.setHandler(function(){
+		var params = extraParams.slice() || [];
+		
+		for(var i = 0; i < fields.length; i++){
+			if(!fields[i].submitParam) console.err('field ' + field[i].id + ' has no submitValue');
+			
+			if(fields[i].value){
+				if(fields[i].isValid()){
+					params.push((fields[i].submitParam || fields[i].id) + '=' + fields[i].value);
+				}else{
+					storeApp.showDialog({id: 'dialogError', title: 'Error', message: 'field ' + fields[i].label + ' has an invalid value.', basecolor: '#990000'});
+					return;
+				}
+			}
+		}
+		
+		if(form.send){
+			form.send(params, that);
+		}else{
+			send(params);
+		}
+	});
 	
 	that.render = function(){
 		var dcont = document.createElement('DIV'); //modal - form

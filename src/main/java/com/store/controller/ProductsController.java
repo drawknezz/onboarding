@@ -1,7 +1,12 @@
 package main.java.com.store.controller;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
 import java.util.List;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
 
 import main.java.com.store.dto.ProductDTO;
 import main.java.com.store.exceptions.ProductAleradyExistsException;
@@ -121,5 +126,23 @@ public class ProductsController {
 		if(description != null) criteria.andDescriptionEqualTo(description);
 		if(stock != null) criteria.andStockEqualTo(stock);
 		return service.deleteProduct(example);
+	}
+	
+	@RequestMapping(method=RequestMethod.GET, value="/productscsv")
+	public void productsCSV(@RequestParam(value="filename", required=false) String filename, HttpServletResponse response){
+		try {
+			ServletOutputStream os = response.getOutputStream();
+			
+			String fn = filename != null? filename + ".csv" : "products.csv";
+			logger.debug("sending csv file with name" + fn);
+			response.addHeader("Content-type", "text/csv");
+			response.addHeader("Content-Disposition", "attachment;filename=" + fn);
+			
+			service.getProductsCsv(new OutputStreamWriter(os));
+			
+			response.flushBuffer();
+		} catch (IOException e) {
+			logger.error("An error has occured while trying to write the csv file.", e);
+		}
 	}
 }

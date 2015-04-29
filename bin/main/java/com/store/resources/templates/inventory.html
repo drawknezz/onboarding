@@ -115,6 +115,42 @@
 						},
 						baseColor: "#A8C3E8"
 						
+					},
+					{
+						text: 'export',
+						id: 'btnExport',
+						handler: function(){
+							var form = storeApp.form({
+								id: 'formExport',
+								title: 'Export Products',
+								url: 'productscsv',
+								method: 'GET',
+								basecolor: '#114298',
+								fields: [
+									{
+										id: 'txtFilename',
+										label: 'File name',
+										submitParam: 'filename',
+										validator: /^[a-zA-Z_0-9]{1,50}$/,
+										maxLength: 50
+									},
+								],
+								button: storeApp.button({text:'export', id:'btnExportCsv', baseColor: '#5D88CF'}),
+								send: function(params, form){
+									window.location = "productscsv" + (params.length? '?' + params.join('&') : '');
+									
+									if(form){
+										var dom = form.getDom();
+										
+										if(dom){
+											dom.parentElement.removeChild(dom);
+										}
+									}
+								}
+							});
+							document.body.appendChild(form.render());
+						},
+						baseColor: "#A8C3E8"
 					}
 				]});
 				
@@ -407,6 +443,37 @@
 
 			.prodcant {
 				  float: left;
+			}
+			
+			.contextmenu {
+				  position: absolute;
+				  top: 0;
+				  left: 0;
+				  width: 150px;
+				  /* height: 200px; */
+				  background: rgb(196, 214, 221);
+				  box-shadow: 1px 1px 5px black;
+				  border: 1px solid white;
+				  padding: 5px;
+			}
+			
+			.contextmenu div:last-child {
+				  border: 0;
+			}
+			
+			.ctxbutton {
+				  padding: 5px;
+				  font-size: 14px;
+				  font-weight: bold;
+				  border-bottom: 1px solid rgb(220, 238, 245);
+				  margin: 0 5px 5px;
+				  cursor: pointer;
+				  border-radius: 5px;
+			}
+			
+			.ctxbutton:hover {
+				color: white;
+				background-color: #3CA1D4;
 			}
 			
 		</style>
